@@ -1,7 +1,8 @@
 "use client";
 
 import { link } from "fs";
-import Image from "next/image";
+import { useState, useEffect, useCallback } from "react";
+
 import React from "react";
 import { BsTwitterX } from "react-icons/bs";
 import { HiHome } from "react-icons/hi2";
@@ -11,6 +12,13 @@ import { MdOutlineEmail } from "react-icons/md";
 import { FaRegUser } from "react-icons/fa6";
 import { CgMoreO } from "react-icons/cg";
 import FeedCard from "@/components/FeedCard/page";
+
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
+import toast from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
+import { GraphQLBoolean } from "graphql";
+import { GraphqlClient } from "@/clients/api";
+import { verifyUserGoolgeTokenQuery } from "@/graphql/query/user";
 
 interface TwitterSidebarButton {
   title: string;
@@ -44,9 +52,34 @@ const sideBarMenuItems: TwitterSidebarButton[] = [
   },
 ];
 
-export default function Home() {
+function Home() {
+  const handleLoginWithGoogle = useCallback(
+    async (cred: CredentialResponse) => {
+      // will sent this credential to backend and it will sent me customized token
+      const googleToken = cred.credential;
+      if (!googleToken) return toast.error(`Google token not found`);
+
+      const { verifyGoogleToken } = await GraphqlClient.request(
+        verifyUserGoolgeTokenQuery,
+        {
+          token: googleToken,
+        }
+      );
+
+      toast.success("Verified Success");
+      console.log(verifyGoogleToken);
+
+      if (verifyGoogleToken)
+        window.localStorage.setItem("__twitter_token", verifyGoogleToken);
+    },
+    []
+  );
+
   return (
-    <div className="grid grid-cols-12 h-screen w-screen px-56 ">
+    <div
+      className="grid grid-cols-12 h-screen w-screen px-56 "
+      suppressHydrationWarning={true}
+    >
       {/* menu bar */}
       <div className="col-span-3 pt-3">
         {/* logo */}
@@ -85,7 +118,34 @@ export default function Home() {
       </div>
 
       {/* Other activities */}
-      <div className="col-span-3">Activity</div>
+      <div className="col-span-3 p-5">
+        <h1 className="">New to Twitter?</h1>
+        <div className="p-5 bg-slate-700 rounded-lg">
+          {/* <GoogleLogin onSuccess={(cred) => console.log(cred)} /> */}
+          <GoogleLogin onSuccess={handleLoginWithGoogle} />
+        </div>
+      </div>
     </div>
+  );
+}
+
+export default function App() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  return (
+    <>
+      {isClient ? (
+        <div>
+          <Toaster />;
+          <Home />
+        </div>
+      ) : (
+        ""
+      )}
+    </>
   );
 }
