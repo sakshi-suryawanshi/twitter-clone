@@ -12,13 +12,23 @@ import { MdOutlineEmail } from "react-icons/md";
 import { FaRegUser } from "react-icons/fa6";
 import { CgMoreO } from "react-icons/cg";
 import FeedCard from "@/components/FeedCard/page";
+import Image from "next/image";
 
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
-import { Toaster } from "react-hot-toast";
 import { GraphQLBoolean } from "graphql";
 import { GraphqlClient } from "@/clients/api";
 import { verifyUserGoolgeTokenQuery } from "@/graphql/query/user";
+import { AppWrapper } from "./appWrapper";
+import { useCurrentUser } from "@/hooks/user";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
+// import Script from "next/script";
+{
+  /* <Script
+  src="./appWrapper"
+  strategy="afterInteractive" // Load the script after the page is interactive
+/>; */
+}
 
 interface TwitterSidebarButton {
   title: string;
@@ -53,10 +63,15 @@ const sideBarMenuItems: TwitterSidebarButton[] = [
 ];
 
 function Home() {
+  const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
+  console.log(user);
+
   const handleLoginWithGoogle = useCallback(
     async (cred: CredentialResponse) => {
       // will sent this credential to backend and it will sent me customized token
       const googleToken = cred.credential;
+
       if (!googleToken) return toast.error(`Google token not found`);
 
       const { verifyGoogleToken } = await GraphqlClient.request(
@@ -71,8 +86,10 @@ function Home() {
 
       if (verifyGoogleToken)
         window.localStorage.setItem("__twitter_token", verifyGoogleToken);
+
+      await queryClient.invalidateQueries({ queryKey: ["current-user"] });
     },
-    []
+    [queryClient]
   );
 
   return (
@@ -81,7 +98,7 @@ function Home() {
       suppressHydrationWarning={true}
     >
       {/* menu bar */}
-      <div className="col-span-3 pt-3">
+      <div className="col-span-3 pt-3 relative">
         {/* logo */}
         <div className="text-4xl hover:bg-gray-900 p-3 rounded-full h-fit w-fit cursor-pointer transition-all">
           <BsTwitterX className="" />
@@ -106,6 +123,24 @@ function Home() {
             </button>
           </div>
         </div>
+        {user && (
+          <div className="absolute bottom-5 flex gap-2 items-center bg-slate-800 p-3 rounded-full m-2">
+            {user && user?.profileImageURL && (
+              <Image
+                className="rounded-full"
+                src={user?.profileImageURL}
+                alt="user-image"
+                height={50}
+                width={50}
+              />
+            )}
+            <div>
+              <h3 className="text-xl">
+                {user.firstName} {user.lastName}
+              </h3>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* feed */}
@@ -119,11 +154,12 @@ function Home() {
 
       {/* Other activities */}
       <div className="col-span-3 p-5">
-        <h1 className="">New to Twitter?</h1>
-        <div className="p-5 bg-slate-700 rounded-lg">
-          {/* <GoogleLogin onSuccess={(cred) => console.log(cred)} /> */}
-          <GoogleLogin onSuccess={handleLoginWithGoogle} />
-        </div>
+        {!user && (
+          <div className="p-5 bg-slate-700 rounded-lg">
+            <h1 className="">New to Twitter?</h1>
+            <GoogleLogin onSuccess={handleLoginWithGoogle} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -140,8 +176,9 @@ export default function App() {
     <>
       {isClient ? (
         <div>
-          <Toaster />;
-          <Home />
+          <AppWrapper>
+            <Home />
+          </AppWrapper>
         </div>
       ) : (
         ""
