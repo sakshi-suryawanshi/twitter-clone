@@ -13,6 +13,7 @@ import { FaRegUser } from "react-icons/fa6";
 import { CgMoreO } from "react-icons/cg";
 import FeedCard from "@/components/FeedCard/page";
 import Image from "next/image";
+import { CiImageOn } from "react-icons/ci";
 
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
@@ -65,7 +66,13 @@ const sideBarMenuItems: TwitterSidebarButton[] = [
 function Home() {
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
-  console.log(user);
+
+  const handleSelectImage = useCallback(() => {
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "image/*");
+    input.click();
+  }, []);
 
   const handleLoginWithGoogle = useCallback(
     async (cred: CredentialResponse) => {
@@ -145,6 +152,40 @@ function Home() {
 
       {/* feed */}
       <div className="col-span-6 border border-t-0 border-b-0 border-slate-800 h-screen overflow-auto">
+        <div>
+          <div className="border border-gray-800 border-r-0 border-l-0 border-b-0 p-5 hover:bg-slate-900 trasition-all cursor-pointer">
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-1">
+                {user && user.profileImageURL && (
+                  <Image
+                    className="rounded-full"
+                    src={user?.profileImageURL}
+                    alt="user-image"
+                    height={50}
+                    width={50}
+                  />
+                )}
+              </div>
+              <div className="col-span-11">
+                <textarea
+                  className="w-full bg-transparent text-xl px-3 border-b border-slate-800 "
+                  placeholder="What's happening?"
+                  rows={2}
+                  name=""
+                  id=""
+                ></textarea>
+                <div className="mt-2 flex justify-between items-center">
+                  <CiImageOn onClick={handleSelectImage} className="text-2xl" />
+
+                  <button className=" bg-[#1d9bf0] font-semibold text-sm py-[1.8px] px-4 rounded-full ">
+                    Tweet
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <FeedCard />
         <FeedCard />
         <FeedCard />
