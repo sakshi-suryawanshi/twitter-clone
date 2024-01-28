@@ -23,6 +23,8 @@ import { verifyUserGoolgeTokenQuery } from "@/graphql/query/user";
 import { AppWrapper } from "./appWrapper";
 import { useCurrentUser } from "@/hooks/user";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useCreateTweet, useGetAllTweets } from "@/hooks/tweet";
+import { Tweet } from "@/gql/graphql";
 // import Script from "next/script";
 {
   /* <Script
@@ -58,14 +60,19 @@ const sideBarMenuItems: TwitterSidebarButton[] = [
     icon: <FaRegUser />,
   },
   {
-    title: "More",
+    title: "More Options",
     icon: <CgMoreO />,
   },
 ];
 
 function Home() {
   const { user } = useCurrentUser();
+  const { tweets = [] } = useGetAllTweets(); //initial value is empty list {tweets = *[]*}
+  const { mutate } = useCreateTweet();
+
   const queryClient = useQueryClient();
+
+  const [content, setContent] = useState("");
 
   const handleSelectImage = useCallback(() => {
     const input = document.createElement("input");
@@ -73,6 +80,12 @@ function Home() {
     input.setAttribute("accept", "image/*");
     input.click();
   }, []);
+
+  const handleCreateTweet = useCallback(() => {
+    mutate({
+      content,
+    });
+  }, [content, mutate]);
 
   const handleLoginWithGoogle = useCallback(
     async (cred: CredentialResponse) => {
@@ -168,6 +181,8 @@ function Home() {
               </div>
               <div className="col-span-11">
                 <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
                   className="w-full bg-transparent text-xl px-3 border-b border-slate-800 "
                   placeholder="What's happening?"
                   rows={2}
@@ -177,7 +192,10 @@ function Home() {
                 <div className="mt-2 flex justify-between items-center">
                   <CiImageOn onClick={handleSelectImage} className="text-2xl" />
 
-                  <button className=" bg-[#1d9bf0] font-semibold text-sm py-[1.8px] px-4 rounded-full ">
+                  <button
+                    onClick={handleCreateTweet}
+                    className=" bg-[#1d9bf0] font-semibold text-sm py-[1.8px] px-4 rounded-full "
+                  >
                     Tweet
                   </button>
                 </div>
@@ -186,11 +204,11 @@ function Home() {
           </div>
         </div>
 
-        <FeedCard />
-        <FeedCard />
-        <FeedCard />
-        <FeedCard />
-        <FeedCard />
+        {tweets?.map((tweet) =>
+          tweet ? <FeedCard key={tweet?.id} data={tweet as Tweet} /> : null
+        )}
+        {/* <FeedCard />
+        <FeedCard /> */}
       </div>
 
       {/* Other activities */}
